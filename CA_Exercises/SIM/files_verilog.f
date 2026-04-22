@@ -5,6 +5,8 @@
 ../Verilog/RTL/cpu.v
 ../Verilog/RTL/immediate_extend_unit.v
 ../Verilog/RTL/mux_2.v
+../Verilog/RTL/mux_3.v
+../Verilog/RTL/fw_unit.v
 ../Verilog/RTL/pc.v
 ../Verilog/RTL/register_file.v
 ../Verilog/RTL/reg_arstn.v
@@ -12,3 +14,4 @@
 ../Verilog/RTL/sram.v
 ../Verilog/cpu_tb.v
 ../Verilog/sky130_sram_2rw.v
+

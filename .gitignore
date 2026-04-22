@@ -1,2 +1,9 @@
 .ipynb_checkpoints
 *runs*
+report.docx
+xcelium.d 
+.simvision 
+xrun.* 
+xmverilog.* 
+*.vcd *.shm 
+*.dump

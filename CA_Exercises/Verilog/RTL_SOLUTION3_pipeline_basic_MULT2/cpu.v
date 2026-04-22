@@ -50,6 +50,9 @@ wire [      63:0] regfile_wdata,mem_data,alu_out,
 
 wire signed [63:0] immediate_extended;
 
+
+
+
 //IF/ID PIPELINE SIGNALS
 wire [31:0] instruction;
 wire [31:0] instruction_IF_ID;
@@ -67,6 +70,7 @@ wire        mem_write_ID_EX, alu_src_ID_EX, reg_write_ID_EX, jump_ID_EX;
 wire [1:0]  alu_op_ID_EX;
 
 // EX/MEM PIPELINE SIGNALS 
+
 wire [63:0] alu_out_EX_MEM;
 wire [63:0] regfile_rdata_2_EX_MEM;
 wire        zero_flag_EX_MEM;
@@ -79,14 +83,12 @@ wire        branch_EX_MEM, mem_read_EX_MEM, mem_2_reg_EX_MEM;
 wire        mem_write_EX_MEM, reg_write_EX_MEM, jump_EX_MEM;
 
 //  MEM/WB PIPELINE SIGNALS 
+
 wire [63:0] alu_out_MEM_WB;
 wire [63:0] mem_data_MEM_WB;
 wire [31:0] instruction_MEM_WB;
 // control signals
 wire        mem_2_reg_MEM_WB, reg_write_MEM_WB;
-
-wire [1:0]  fw_a, fw_b;
-wire [63:0] alu_in_0, alu_in_1;
 
 
 // IF STAGE START
@@ -106,26 +108,24 @@ pc #(
 );
 
 sram_BW32 #(
-   .ADDR_W(9)
+   .ADDR_W(9 )
 ) instruction_memory(
-   .clk      (clk        ),
-   .addr     (current_pc ),
-   .wen      (1'b0       ),
-   .ren      (1'b1       ),
-   .wdata    (32'b0      ),
-   .rdata    (instruction),
-   .addr_ext (addr_ext   ),
-   .wen_ext  (wen_ext    ),
-   .ren_ext  (ren_ext    ),
-   .wdata_ext(wdata_ext  ),
-   .rdata_ext(rdata_ext  )
+   .clk      (clk           ),
+   .addr     (current_pc    ),
+   .wen      (1'b0          ),
+   .ren      (1'b1          ),
+   .wdata    (32'b0         ),
+   .rdata    (instruction   ),   
+   .addr_ext (addr_ext      ),
+   .wen_ext  (wen_ext       ), 
+   .ren_ext  (ren_ext       ),
+   .wdata_ext(wdata_ext     ),
+   .rdata_ext(rdata_ext     )
 );
 // IF STAGE END
 
 // IF_ID REG START
-reg_arstn_en #(
-   .DATA_W(32)
-) pipe_IF_ID_instruction (
+reg_arstn_en #(.DATA_W(32)) pipe_IF_ID_instruction (
    .clk    (clk              ),
    .arst_n (arst_n           ),
    .en     (enable           ),
@@ -133,9 +133,7 @@ reg_arstn_en #(
    .dout   (instruction_IF_ID)
 );
 
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_IF_ID_pc (
+reg_arstn_en #(.DATA_W(64)) pipe_IF_ID_pc (
    .clk    (clk             ),
    .arst_n (arst_n          ),
    .din    (current_pc      ),
@@ -179,45 +177,35 @@ immediate_extend_unit immediate_extend_u(
 // ID STAGE END
 
 // ID_EX REG START
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_ID_EX_rdata1 (
+reg_arstn_en #(.DATA_W(64)) pipe_ID_EX_rdata1 (
    .clk    (clk                   ),
    .arst_n (arst_n                ),
    .din    (regfile_rdata_1       ),
    .en     (enable                ),
    .dout   (regfile_rdata_1_ID_EX )
 );
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_ID_EX_rdata2 (
+reg_arstn_en #(.DATA_W(64)) pipe_ID_EX_rdata2 (
    .clk    (clk                   ),
    .arst_n (arst_n                ),
    .din    (regfile_rdata_2       ),
    .en     (enable                ),
    .dout   (regfile_rdata_2_ID_EX )
 );
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_ID_EX_imm (
+reg_arstn_en #(.DATA_W(64)) pipe_ID_EX_imm (
    .clk    (clk                      ),
    .arst_n (arst_n                   ),
    .din    (immediate_extended       ),
    .en     (enable                   ),
    .dout   (immediate_extended_ID_EX )
 );
-reg_arstn_en #(
-   .DATA_W(32)
-) pipe_ID_EX_instruction (
+reg_arstn_en #(.DATA_W(32)) pipe_ID_EX_instruction (
    .clk    (clk               ),
    .arst_n (arst_n            ),
    .din    (instruction_IF_ID ),
    .en     (enable            ),
    .dout   (instruction_ID_EX )
 );
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_ID_EX_pc (
+reg_arstn_en #(.DATA_W(64)) pipe_ID_EX_pc (
    .clk    (clk              ),
    .arst_n (arst_n           ),
    .din    (current_pc_IF_ID ),
@@ -225,72 +213,56 @@ reg_arstn_en #(
    .dout   (current_pc_ID_EX )
 );
 
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_ID_EX_branch (
+reg_arstn_en #(.DATA_W(1)) pipe_ID_EX_branch (
    .clk    (clk         ),
    .arst_n (arst_n      ),
    .din    (branch      ),
    .en     (enable      ),
    .dout   (branch_ID_EX)
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_ID_EX_mem_read (
+reg_arstn_en #(.DATA_W(1)) pipe_ID_EX_mem_read (
    .clk    (clk            ),
    .arst_n (arst_n         ),
    .din    (mem_read       ),
    .en     (enable         ),
    .dout   (mem_read_ID_EX )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_ID_EX_mem_2_reg (
-   .clk    (clk             ),
-   .arst_n (arst_n          ),
-   .din    (mem_2_reg       ),
-   .en     (enable          ),
-   .dout   (mem_2_reg_ID_EX )
+reg_arstn_en #(.DATA_W(1)) pipe_ID_EX_mem_2_reg (
+   .clk    (clk              ),
+   .arst_n (arst_n           ),
+   .din    (mem_2_reg        ),
+   .en     (enable           ),
+   .dout   (mem_2_reg_ID_EX  )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_ID_EX_mem_write (
-   .clk    (clk             ),
-   .arst_n (arst_n          ),
-   .din    (mem_write       ),
-   .en     (enable          ),
-   .dout   (mem_write_ID_EX )
+reg_arstn_en #(.DATA_W(1)) pipe_ID_EX_mem_write (
+   .clk    (clk              ),
+   .arst_n (arst_n           ),
+   .din    (mem_write        ),
+   .en     (enable           ),
+   .dout   (mem_write_ID_EX  )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_ID_EX_alu_src (
+reg_arstn_en #(.DATA_W(1)) pipe_ID_EX_alu_src (
    .clk    (clk           ),
    .arst_n (arst_n        ),
    .din    (alu_src       ),
    .en     (enable        ),
    .dout   (alu_src_ID_EX )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_ID_EX_reg_write (
-   .clk    (clk             ),
-   .arst_n (arst_n          ),
-   .din    (reg_write       ),
-   .en     (enable          ),
-   .dout   (reg_write_ID_EX )
+reg_arstn_en #(.DATA_W(1)) pipe_ID_EX_reg_write (
+   .clk    (clk              ),
+   .arst_n (arst_n           ),
+   .din    (reg_write        ),
+   .en     (enable           ),
+   .dout   (reg_write_ID_EX  )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_ID_EX_jump (
+reg_arstn_en #(.DATA_W(1)) pipe_ID_EX_jump (
    .clk    (clk        ),
    .arst_n (arst_n     ),
    .din    (jump       ),
    .en     (enable     ),
    .dout   (jump_ID_EX )
 );
-reg_arstn_en #(
-   .DATA_W(2)
-) pipe_ID_EX_alu_op (
+reg_arstn_en #(.DATA_W(2)) pipe_ID_EX_alu_op (
    .clk    (clk         ),
    .arst_n (arst_n      ),
    .din    (alu_op      ),
@@ -308,18 +280,6 @@ alu_control alu_ctrl(
    .alu_control(alu_control             )
 );
 
-fw_unit forwarding_unit(
-   .rs1_ID_EX        (instruction_ID_EX[19:15]),
-   .rs2_ID_EX        (instruction_ID_EX[24:20]),
-   .rd_EX_MEM        (instruction_EX_MEM[11:7]),
-   .rd_MEM_WB        (instruction_MEM_WB[11:7]),
-   .reg_write_EX_MEM (reg_write_EX_MEM        ),
-   .reg_write_MEM_WB (reg_write_MEM_WB        ),
-   .alu_src_ID_EX    (alu_src_ID_EX           ),
-   .forward_A        (fw_a                    ),
-   .forward_B        (fw_b                    )
-);
-
 mux_2 #(
    .DATA_W(64)
 ) alu_operand_mux (
@@ -329,41 +289,20 @@ mux_2 #(
    .mux_out (alu_operand_2           )
 );
 
-
-mux_3 #(
-   .DATA_W(64)
-) fw_mux_A (
-   .input_a (regfile_rdata_1_ID_EX),
-   .input_b (regfile_wdata        ),
-   .input_c (alu_out_EX_MEM       ),
-   .select  (fw_a                 ),
-   .mux_out (alu_in_0             )
-);
-
-mux_3 #(
-   .DATA_W(64)
-) fw_mux_B (
-   .input_a (alu_operand_2  ),
-   .input_b (regfile_wdata  ),
-   .input_c (alu_out_EX_MEM ),
-   .select  (fw_b           ),
-   .mux_out (alu_in_1       )
-);
-
-alu #(
+alu#(
    .DATA_W(64)
 ) alu(
-   .alu_in_0 (alu_in_0   ),
-   .alu_in_1 (alu_in_1   ),
-   .alu_ctrl (alu_control),
-   .alu_out  (alu_out    ),
-   .zero_flag(zero_flag  ),
-   .overflow (           )
+   .alu_in_0 (regfile_rdata_1_ID_EX),
+   .alu_in_1 (alu_operand_2        ),
+   .alu_ctrl (alu_control          ),
+   .alu_out  (alu_out              ),
+   .zero_flag(zero_flag            ),
+   .overflow (                     )
 );
 
-branch_unit #(
+branch_unit#(
    .DATA_W(64)
-) branch_unit(
+)branch_unit(
    .current_pc        (current_pc_ID_EX        ),
    .immediate_extended(immediate_extended_ID_EX),
    .branch_pc         (branch_pc               ),
@@ -372,54 +311,42 @@ branch_unit #(
 // EX STAGE END
 
 // EX_MEM REG START
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_EX_MEM_alu_out (
+reg_arstn_en #(.DATA_W(64)) pipe_EX_MEM_alu_out (
    .clk    (clk            ),
    .arst_n (arst_n         ),
    .din    (alu_out        ),
    .en     (enable         ),
    .dout   (alu_out_EX_MEM )
 );
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_EX_MEM_rdata2 (
+reg_arstn_en #(.DATA_W(64)) pipe_EX_MEM_rdata2 (
    .clk    (clk                    ),
    .arst_n (arst_n                 ),
    .din    (regfile_rdata_2_ID_EX  ),
    .en     (enable                 ),
    .dout   (regfile_rdata_2_EX_MEM )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_EX_MEM_zero (
+reg_arstn_en #(.DATA_W(1)) pipe_EX_MEM_zero (
    .clk    (clk             ),
    .arst_n (arst_n          ),
    .din    (zero_flag       ),
    .en     (enable          ),
    .dout   (zero_flag_EX_MEM)
 );
-reg_arstn_en #(
-   .DATA_W(32)
-) pipe_EX_MEM_instruction (
+reg_arstn_en #(.DATA_W(32)) pipe_EX_MEM_instruction (
    .clk    (clk                ),
    .arst_n (arst_n             ),
    .din    (instruction_ID_EX  ),
    .en     (enable             ),
    .dout   (instruction_EX_MEM )
 );
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_EX_MEM_branch_pc (
+reg_arstn_en #(.DATA_W(64)) pipe_EX_MEM_branch_pc (
    .clk    (clk              ),
    .arst_n (arst_n           ),
    .din    (branch_pc        ),
    .en     (enable           ),
    .dout   (branch_pc_EX_MEM )
 );
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_EX_MEM_jump_pc (
+reg_arstn_en #(.DATA_W(64)) pipe_EX_MEM_jump_pc (
    .clk    (clk           ),
    .arst_n (arst_n        ),
    .din    (jump_pc       ),
@@ -427,54 +354,42 @@ reg_arstn_en #(
    .dout   (jump_pc_EX_MEM)
 );
 
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_EX_MEM_branch (
+reg_arstn_en #(.DATA_W(1)) pipe_EX_MEM_branch (
    .clk    (clk           ),
    .arst_n (arst_n        ),
    .din    (branch_ID_EX  ),
    .en     (enable        ),
    .dout   (branch_EX_MEM )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_EX_MEM_mem_read (
+reg_arstn_en #(.DATA_W(1)) pipe_EX_MEM_mem_read (
    .clk    (clk             ),
    .arst_n (arst_n          ),
    .din    (mem_read_ID_EX  ),
    .en     (enable          ),
    .dout   (mem_read_EX_MEM )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_EX_MEM_mem_2_reg (
+reg_arstn_en #(.DATA_W(1)) pipe_EX_MEM_mem_2_reg (
    .clk    (clk              ),
    .arst_n (arst_n           ),
    .din    (mem_2_reg_ID_EX  ),
    .en     (enable           ),
    .dout   (mem_2_reg_EX_MEM )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_EX_MEM_mem_write (
+reg_arstn_en #(.DATA_W(1)) pipe_EX_MEM_mem_write (
    .clk    (clk              ),
    .arst_n (arst_n           ),
    .din    (mem_write_ID_EX  ),
    .en     (enable           ),
    .dout   (mem_write_EX_MEM )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_EX_MEM_reg_write (
+reg_arstn_en #(.DATA_W(1)) pipe_EX_MEM_reg_write (
    .clk    (clk              ),
    .arst_n (arst_n           ),
    .din    (reg_write_ID_EX  ),
    .en     (enable           ),
    .dout   (reg_write_EX_MEM )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_EX_MEM_jump (
+reg_arstn_en #(.DATA_W(1)) pipe_EX_MEM_jump (
    .clk    (clk         ),
    .arst_n (arst_n      ),
    .din    (jump_ID_EX  ),
@@ -492,7 +407,7 @@ sram_BW64 #(
    .wen      (mem_write_EX_MEM       ),
    .ren      (mem_read_EX_MEM        ),
    .wdata    (regfile_rdata_2_EX_MEM ),
-   .rdata    (mem_data               ),
+   .rdata    (mem_data               ),   
    .addr_ext (addr_ext_2             ),
    .wen_ext  (wen_ext_2              ),
    .ren_ext  (ren_ext_2              ),
@@ -502,27 +417,21 @@ sram_BW64 #(
 // MEM STAGE END
 
 // MEM_WB REG START
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_MEM_WB_alu_out (
+reg_arstn_en #(.DATA_W(64)) pipe_MEM_WB_alu_out (
    .clk    (clk            ),
    .arst_n (arst_n         ),
    .din    (alu_out_EX_MEM ),
    .en     (enable         ),
    .dout   (alu_out_MEM_WB )
 );
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_MEM_WB_mem_data (
+reg_arstn_en #(.DATA_W(64)) pipe_MEM_WB_mem_data (
    .clk    (clk            ),
    .arst_n (arst_n         ),
    .din    (mem_data       ),
    .en     (enable         ),
    .dout   (mem_data_MEM_WB)
 );
-reg_arstn_en #(
-   .DATA_W(32)
-) pipe_MEM_WB_instruction (
+reg_arstn_en #(.DATA_W(32)) pipe_MEM_WB_instruction (
    .clk    (clk                ),
    .arst_n (arst_n             ),
    .din    (instruction_EX_MEM ),
@@ -530,18 +439,14 @@ reg_arstn_en #(
    .dout   (instruction_MEM_WB )
 );
 
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_MEM_WB_mem_2_reg (
+reg_arstn_en #(.DATA_W(1)) pipe_MEM_WB_mem_2_reg (
    .clk    (clk              ),
    .arst_n (arst_n           ),
    .din    (mem_2_reg_EX_MEM ),
    .en     (enable           ),
    .dout   (mem_2_reg_MEM_WB )
 );
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_MEM_WB_reg_write (
+reg_arstn_en #(.DATA_W(1)) pipe_MEM_WB_reg_write (
    .clk    (clk              ),
    .arst_n (arst_n           ),
    .din    (reg_write_EX_MEM ),
