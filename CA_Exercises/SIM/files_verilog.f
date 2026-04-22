@@ -12,6 +12,7 @@
 ../Verilog/RTL/reg_arstn.v
 ../Verilog/RTL/reg_arstn_en.v
 ../Verilog/RTL/sram.v
+../Verilog/RTL/hazard_detection_unit.v
 ../Verilog/cpu_tb.v
 ../Verilog/sky130_sram_2rw.v
 
