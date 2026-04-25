@@ -8,3 +8,4 @@ xmverilog.*
 *.vcd 
 *.shm 
 *.dump
+.nsf*
