@@ -35,11 +35,23 @@ module register_file#(
 
    integer idx;
 
-
+   /*
    always@(*) begin
          rdata_1 = reg_array[raddr_1];
          rdata_2 = reg_array[raddr_2];
    end
+   */
+   always@(*) begin
+    if (reg_write && (waddr == raddr_1) && (waddr != 5'b0))
+        rdata_1 = wdata;
+    else
+        rdata_1 = reg_array[raddr_1];
+
+    if (reg_write && (waddr == raddr_2) && (waddr != 5'b0))
+        rdata_2 = wdata;
+    else
+        rdata_2 = reg_array[raddr_2];
+end
 
 
    //Register file write process
