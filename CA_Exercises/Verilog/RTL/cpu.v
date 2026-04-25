@@ -53,7 +53,14 @@ wire signed [63:0] immediate_extended;
 //IF/ID PIPELINE SIGNALS
 wire [31:0] instruction;
 wire [31:0] instruction_IF_ID;
+wire [31:0] instruction_to_IF_ID;
 wire [63:0] current_pc_IF_ID;
+
+// ID stage branch/jump decision signals
+wire        branch_taken_ID;
+wire        flush;
+wire [63:0] branch_pc_ID;
+wire [63:0] jump_pc_ID;
 
 // ID/EX PIPELINE SIGNALS 
 wire [63:0] regfile_rdata_1_ID_EX;
@@ -71,12 +78,9 @@ wire [63:0] alu_out_EX_MEM;
 wire [63:0] regfile_rdata_2_EX_MEM;
 wire        zero_flag_EX_MEM;
 wire [31:0] instruction_EX_MEM;
-wire [63:0] current_pc_EX_MEM;
-wire [63:0] branch_pc_EX_MEM;
-wire [63:0] jump_pc_EX_MEM;
 // control signals
-wire        branch_EX_MEM, mem_read_EX_MEM, mem_2_reg_EX_MEM;
-wire        mem_write_EX_MEM, reg_write_EX_MEM, jump_EX_MEM;
+wire        mem_read_EX_MEM, mem_2_reg_EX_MEM;
+wire        mem_write_EX_MEM, reg_write_EX_MEM;
 
 //  MEM/WB PIPELINE SIGNALS 
 wire [63:0] alu_out_MEM_WB;
@@ -95,16 +99,16 @@ wire        stall;
 pc #(
    .DATA_W(64)
 ) program_counter (
-   .clk       (clk              ),
-   .arst_n    (arst_n           ),
-   .branch_pc (branch_pc_EX_MEM ),
-   .jump_pc   (jump_pc_EX_MEM   ),
-   .zero_flag (zero_flag_EX_MEM ),
-   .branch    (branch_EX_MEM    ),
-   .jump      (jump_EX_MEM      ),
-   .current_pc(current_pc       ),
-   .enable    (enable & ~stall  ),
-   .updated_pc(updated_pc       )
+   .clk       (clk             ),
+   .arst_n    (arst_n          ),
+   .branch_pc (branch_pc_ID    ),
+   .jump_pc   (jump_pc_ID      ),
+   .zero_flag (branch_taken_ID ),
+   .branch    (branch_taken_ID ),
+   .jump      (jump            ),
+   .current_pc(current_pc      ),
+   .enable    (enable & ~stall ),
+   .updated_pc(updated_pc      )
 );
 
 sram_BW32 #(
@@ -124,6 +128,9 @@ sram_BW32 #(
 );
 // IF STAGE END
 
+// flush inserts NOP into IF/ID when branch taken or jump
+assign instruction_to_IF_ID = flush ? 32'h00000013 : instruction;
+
 // IF_ID REG START
 reg_arstn_en #(
    .DATA_W(32)
@@ -131,7 +138,7 @@ reg_arstn_en #(
    .clk    (clk              ),
    .arst_n (arst_n           ),
    .en     (enable & ~stall  ),
-   .din    (instruction      ),
+   .din    (instruction_to_IF_ID),
    .dout   (instruction_IF_ID)
 );
 
@@ -178,6 +185,22 @@ immediate_extend_unit immediate_extend_u(
    .instruction        (instruction_IF_ID  ),
    .immediate_extended (immediate_extended )
 );
+
+// branch/jump resolved in ID stage
+branch_unit #(
+   .DATA_W(64)
+) branch_unit(
+   .current_pc        (current_pc_IF_ID ),
+   .immediate_extended(immediate_extended),
+   .branch_pc         (branch_pc_ID     ),
+   .jump_pc           (jump_pc_ID       )
+);
+
+// comparator: branch taken if beq and rs1 == rs2
+assign branch_taken_ID = branch & (regfile_rdata_1 == regfile_rdata_2);
+
+// flush IF when branch taken or jump
+assign flush = branch_taken_ID | jump;
 
 hazard_detection_unit hazard_u(
    .rs1_IF_ID     (instruction_IF_ID[19:15]),
@@ -237,15 +260,6 @@ reg_arstn_en #(
 
 reg_arstn_en #(
    .DATA_W(1)
-) pipe_ID_EX_branch (
-   .clk    (clk              ),
-   .arst_n (arst_n           ),
-   .din    (branch & ~stall  ),
-   .en     (enable           ),
-   .dout   (branch_ID_EX     )
-);
-reg_arstn_en #(
-   .DATA_W(1)
 ) pipe_ID_EX_mem_read (
    .clk    (clk                ),
    .arst_n (arst_n             ),
@@ -288,15 +302,6 @@ reg_arstn_en #(
    .din    (reg_write & ~stall  ),
    .en     (enable              ),
    .dout   (reg_write_ID_EX     )
-);
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_ID_EX_jump (
-   .clk    (clk            ),
-   .arst_n (arst_n         ),
-   .din    (jump & ~stall  ),
-   .en     (enable         ),
-   .dout   (jump_ID_EX     )
 );
 reg_arstn_en #(
    .DATA_W(2)
@@ -379,15 +384,6 @@ alu #(
    .zero_flag(zero_flag  ),
    .overflow (           )
 );
-
-branch_unit #(
-   .DATA_W(64)
-) branch_unit(
-   .current_pc        (current_pc_ID_EX        ),
-   .immediate_extended(immediate_extended_ID_EX),
-   .branch_pc         (branch_pc               ),
-   .jump_pc           (jump_pc                 )
-);
 // EX STAGE END
 
 // EX_MEM REG START
@@ -428,34 +424,6 @@ reg_arstn_en #(
    .dout   (instruction_EX_MEM )
 );
 reg_arstn_en #(
-   .DATA_W(64)
-) pipe_EX_MEM_branch_pc (
-   .clk    (clk              ),
-   .arst_n (arst_n           ),
-   .din    (branch_pc        ),
-   .en     (enable           ),
-   .dout   (branch_pc_EX_MEM )
-);
-reg_arstn_en #(
-   .DATA_W(64)
-) pipe_EX_MEM_jump_pc (
-   .clk    (clk           ),
-   .arst_n (arst_n        ),
-   .din    (jump_pc       ),
-   .en     (enable        ),
-   .dout   (jump_pc_EX_MEM)
-);
-
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_EX_MEM_branch (
-   .clk    (clk           ),
-   .arst_n (arst_n        ),
-   .din    (branch_ID_EX  ),
-   .en     (enable        ),
-   .dout   (branch_EX_MEM )
-);
-reg_arstn_en #(
    .DATA_W(1)
 ) pipe_EX_MEM_mem_read (
    .clk    (clk             ),
@@ -490,15 +458,6 @@ reg_arstn_en #(
    .din    (reg_write_ID_EX  ),
    .en     (enable           ),
    .dout   (reg_write_EX_MEM )
-);
-reg_arstn_en #(
-   .DATA_W(1)
-) pipe_EX_MEM_jump (
-   .clk    (clk         ),
-   .arst_n (arst_n      ),
-   .din    (jump_ID_EX  ),
-   .en     (enable      ),
-   .dout   (jump_EX_MEM )
 );
 // EX_MEM REG END
 
@@ -548,7 +507,6 @@ reg_arstn_en #(
    .en     (enable             ),
    .dout   (instruction_MEM_WB )
 );
-
 reg_arstn_en #(
    .DATA_W(1)
 ) pipe_MEM_WB_mem_2_reg (
