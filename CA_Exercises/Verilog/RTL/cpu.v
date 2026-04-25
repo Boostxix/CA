@@ -87,6 +87,7 @@ wire        mem_2_reg_MEM_WB, reg_write_MEM_WB;
 
 wire [1:0]  fw_a, fw_b;
 wire [63:0] alu_in_0, alu_in_1;
+wire [63:0] fw_rdata2;
 wire        stall;
 
 
@@ -188,7 +189,6 @@ hazard_detection_unit hazard_u(
 // ID STAGE END
 
 // ID_EX REG START
-// data registers - frozen during stall
 reg_arstn_en #(
    .DATA_W(64)
 ) pipe_ID_EX_rdata1 (
@@ -235,7 +235,6 @@ reg_arstn_en #(
    .dout   (current_pc_ID_EX )
 );
 
-// control signal registers - bubble inserted during stall
 reg_arstn_en #(
    .DATA_W(1)
 ) pipe_ID_EX_branch (
@@ -360,6 +359,16 @@ mux_3 #(
    .mux_out (alu_in_1       )
 );
 
+mux_3 #(
+   .DATA_W(64)
+) fw_mux_rdata2 (
+   .input_a (regfile_rdata_2_ID_EX),
+   .input_b (regfile_wdata        ),
+   .input_c (alu_out_EX_MEM       ),
+   .select  (fw_b                 ),
+   .mux_out (fw_rdata2            )
+);
+
 alu #(
    .DATA_W(64)
 ) alu(
@@ -396,7 +405,7 @@ reg_arstn_en #(
 ) pipe_EX_MEM_rdata2 (
    .clk    (clk                    ),
    .arst_n (arst_n                 ),
-   .din    (regfile_rdata_2_ID_EX  ),
+   .din    (fw_rdata2              ),
    .en     (enable                 ),
    .dout   (regfile_rdata_2_EX_MEM )
 );
